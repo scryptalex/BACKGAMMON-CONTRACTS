@@ -61,10 +61,15 @@ export interface GameEscrowInterface extends Interface {
       | "getBalance"
       | "getCommissionRate"
       | "getGame"
+      | "getOperator"
+      | "getStats"
       | "joinGame"
+      | "operator"
       | "owner"
+      | "refundStuckGame"
       | "renounceOwnership"
       | "setCommission"
+      | "setOperator"
       | "totalCommission"
       | "transferOwnership"
       | "usdt"
@@ -81,6 +86,7 @@ export interface GameEscrowInterface extends Interface {
       | "GameCompleted"
       | "GameCreated"
       | "GameJoined"
+      | "OperatorUpdated"
       | "OwnershipTransferred"
       | "Withdraw"
   ): EventFragment;
@@ -127,10 +133,20 @@ export interface GameEscrowInterface extends Interface {
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
+    functionFragment: "getOperator",
+    values?: undefined
+  ): string;
+  encodeFunctionData(functionFragment: "getStats", values?: undefined): string;
+  encodeFunctionData(
     functionFragment: "joinGame",
     values: [BigNumberish]
   ): string;
+  encodeFunctionData(functionFragment: "operator", values?: undefined): string;
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "refundStuckGame",
+    values: [BigNumberish]
+  ): string;
   encodeFunctionData(
     functionFragment: "renounceOwnership",
     values?: undefined
@@ -138,6 +154,10 @@ export interface GameEscrowInterface extends Interface {
   encodeFunctionData(
     functionFragment: "setCommission",
     values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setOperator",
+    values: [AddressLike]
   ): string;
   encodeFunctionData(
     functionFragment: "totalCommission",
@@ -177,14 +197,28 @@ export interface GameEscrowInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "getGame", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "getOperator",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "getStats", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "joinGame", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "operator", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "refundStuckGame",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "renounceOwnership",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
     functionFragment: "setCommission",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setOperator",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -314,6 +348,19 @@ export namespace GameJoinedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
+export namespace OperatorUpdatedEvent {
+  export type InputTuple = [oldOperator: AddressLike, newOperator: AddressLike];
+  export type OutputTuple = [oldOperator: string, newOperator: string];
+  export interface OutputObject {
+    oldOperator: string;
+    newOperator: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
 export namespace OwnershipTransferredEvent {
   export type InputTuple = [previousOwner: AddressLike, newOwner: AddressLike];
   export type OutputTuple = [previousOwner: string, newOwner: string];
@@ -433,14 +480,43 @@ export interface GameEscrow extends BaseContract {
     "view"
   >;
 
+  getOperator: TypedContractMethod<[], [string], "view">;
+
+  getStats: TypedContractMethod<
+    [],
+    [
+      [bigint, bigint, bigint, string] & {
+        _totalCommission: bigint;
+        _gameCounter: bigint;
+        _commission: bigint;
+        _operator: string;
+      }
+    ],
+    "view"
+  >;
+
   joinGame: TypedContractMethod<[_gameId: BigNumberish], [void], "nonpayable">;
 
+  operator: TypedContractMethod<[], [string], "view">;
+
   owner: TypedContractMethod<[], [string], "view">;
+
+  refundStuckGame: TypedContractMethod<
+    [_gameId: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
 
   renounceOwnership: TypedContractMethod<[], [void], "nonpayable">;
 
   setCommission: TypedContractMethod<
     [_commission: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+
+  setOperator: TypedContractMethod<
+    [_operator: AddressLike],
     [void],
     "nonpayable"
   >;
@@ -521,17 +597,43 @@ export interface GameEscrow extends BaseContract {
     "view"
   >;
   getFunction(
+    nameOrSignature: "getOperator"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "getStats"
+  ): TypedContractMethod<
+    [],
+    [
+      [bigint, bigint, bigint, string] & {
+        _totalCommission: bigint;
+        _gameCounter: bigint;
+        _commission: bigint;
+        _operator: string;
+      }
+    ],
+    "view"
+  >;
+  getFunction(
     nameOrSignature: "joinGame"
   ): TypedContractMethod<[_gameId: BigNumberish], [void], "nonpayable">;
   getFunction(
+    nameOrSignature: "operator"
+  ): TypedContractMethod<[], [string], "view">;
+  getFunction(
     nameOrSignature: "owner"
   ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "refundStuckGame"
+  ): TypedContractMethod<[_gameId: BigNumberish], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "renounceOwnership"
   ): TypedContractMethod<[], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "setCommission"
   ): TypedContractMethod<[_commission: BigNumberish], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "setOperator"
+  ): TypedContractMethod<[_operator: AddressLike], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "totalCommission"
   ): TypedContractMethod<[], [bigint], "view">;
@@ -596,6 +698,13 @@ export interface GameEscrow extends BaseContract {
     GameJoinedEvent.InputTuple,
     GameJoinedEvent.OutputTuple,
     GameJoinedEvent.OutputObject
+  >;
+  getEvent(
+    key: "OperatorUpdated"
+  ): TypedContractEvent<
+    OperatorUpdatedEvent.InputTuple,
+    OperatorUpdatedEvent.OutputTuple,
+    OperatorUpdatedEvent.OutputObject
   >;
   getEvent(
     key: "OwnershipTransferred"
@@ -688,6 +797,17 @@ export interface GameEscrow extends BaseContract {
       GameJoinedEvent.InputTuple,
       GameJoinedEvent.OutputTuple,
       GameJoinedEvent.OutputObject
+    >;
+
+    "OperatorUpdated(address,address)": TypedContractEvent<
+      OperatorUpdatedEvent.InputTuple,
+      OperatorUpdatedEvent.OutputTuple,
+      OperatorUpdatedEvent.OutputObject
+    >;
+    OperatorUpdated: TypedContractEvent<
+      OperatorUpdatedEvent.InputTuple,
+      OperatorUpdatedEvent.OutputTuple,
+      OperatorUpdatedEvent.OutputObject
     >;
 
     "OwnershipTransferred(address,address)": TypedContractEvent<

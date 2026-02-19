@@ -7,7 +7,7 @@
     "compile": "hardhat compile",
     "test": "hardhat test",
     "deploy:local": "hardhat run scripts/deploy.ts --network hardhat",
-    "deploy:mumbai": "hardhat run scripts/deploy.ts --network mumbai",
+    "deploy:amoy": "hardhat run scripts/deploy.ts --network amoy",
     "deploy:polygon": "hardhat run scripts/deploy.ts --network polygon",
     "clean": "hardhat clean"
   },

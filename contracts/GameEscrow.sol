@@ -7,12 +7,19 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title GameEscrow
- * @dev Escrow contract for P2P backgammon games with USDT stakes
+ * @dev Escrow contract for P2P games with USDT stakes
+ * 
+ * Security model:
+ * - Owner (cold wallet): Can withdraw commissions, change settings, set operator
+ * - Operator (hot wallet on server): Can only complete games, cannot withdraw funds
  */
 contract GameEscrow is Ownable, ReentrancyGuard {
     IERC20 public usdt;
     uint256 public commission = 500; // 5% (basis 10000)
     uint256 public totalCommission;
+    
+    // Operator address (hot wallet for backend)
+    address public operator;
     
     struct Game {
         address player1;
@@ -37,10 +44,28 @@ contract GameEscrow is Ownable, ReentrancyGuard {
     event GameCancelled(uint256 indexed gameId, address indexed player1);
     event CommissionUpdated(uint256 oldCommission, uint256 newCommission);
     event CommissionWithdrawn(address indexed to, uint256 amount);
+    event OperatorUpdated(address indexed oldOperator, address indexed newOperator);
+    
+    /**
+     * @dev Modifier to restrict access to owner or operator
+     */
+    modifier onlyOperatorOrOwner() {
+        require(msg.sender == owner() || msg.sender == operator, "Not authorized");
+        _;
+    }
     
     constructor(address _usdt) Ownable(msg.sender) {
         require(_usdt != address(0), "Invalid USDT address");
         usdt = IERC20(_usdt);
+    }
+    
+    /**
+     * @dev Set operator address (only owner)
+     * @param _operator New operator address (set to address(0) to disable)
+     */
+    function setOperator(address _operator) external onlyOwner {
+        emit OperatorUpdated(operator, _operator);
+        operator = _operator;
     }
     
     /**
@@ -109,11 +134,11 @@ contract GameEscrow is Ownable, ReentrancyGuard {
     }
     
     /**
-     * @dev Complete a game and distribute winnings (only owner - backend)
+     * @dev Complete a game and distribute winnings (owner or operator)
      * @param _gameId ID of the game to complete
      * @param _winner Address of the winner
      */
-    function completeGame(uint256 _gameId, address _winner) external onlyOwner {
+    function completeGame(uint256 _gameId, address _winner) external onlyOperatorOrOwner {
         Game storage game = games[_gameId];
         require(!game.completed, "Game already completed");
         require(game.player2 != address(0), "Game not started");
@@ -146,6 +171,29 @@ contract GameEscrow is Ownable, ReentrancyGuard {
         game.completed = true;
         
         emit GameCancelled(_gameId, msg.sender);
+    }
+    
+    /**
+     * @dev Refund a stuck game - returns stakes to both players (owner or operator only)
+     * Use this for games that started but couldn't complete normally
+     * @param _gameId ID of the game to refund
+     */
+    function refundStuckGame(uint256 _gameId) external onlyOperatorOrOwner {
+        Game storage game = games[_gameId];
+        require(!game.completed, "Game already completed");
+        require(game.player1 != address(0), "Game does not exist");
+        
+        // Refund player1
+        balances[game.player1] += game.stake;
+        
+        // Refund player2 if they joined
+        if (game.player2 != address(0)) {
+            balances[game.player2] += game.stake;
+        }
+        
+        game.completed = true;
+        
+        emit GameCancelled(_gameId, game.player1);
     }
     
     /**
@@ -193,5 +241,29 @@ contract GameEscrow is Ownable, ReentrancyGuard {
      */
     function getCommissionRate() external view returns (uint256) {
         return commission;
+    }
+    
+    /**
+     * @dev Get operator address
+     * @return Current operator address
+     */
+    function getOperator() external view returns (address) {
+        return operator;
+    }
+    
+    /**
+     * @dev Get contract statistics for admin dashboard
+     * @return _totalCommission Total accumulated commission
+     * @return _gameCounter Total number of games created
+     * @return _commission Current commission rate
+     * @return _operator Current operator address
+     */
+    function getStats() external view returns (
+        uint256 _totalCommission,
+        uint256 _gameCounter,
+        uint256 _commission,
+        address _operator
+    ) {
+        return (totalCommission, gameCounter, commission, operator);
     }
 }
