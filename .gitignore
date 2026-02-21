@@ -1,0 +1,28 @@
+# Environment variables (NEVER COMMIT!)
+.env
+.env.*
+*.env
+
+# Hardhat
+node_modules/
+cache/
+artifacts/
+typechain-types/
+
+# Coverage
+coverage/
+coverage.json
+
+# Build
+dist/
+out/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
